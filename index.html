@@ -70,6 +70,27 @@
     <strong>Open in Safari</strong> (or "Open in new tab") to load the working app.
   </div>
 </noscript>
+
+<div id="gate" style="display:flex; align-items:center; justify-content:center; min-height:100vh; padding:max(16px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left)); font-family:'Helvetica Neue', Arial, sans-serif; color:#22262B; box-sizing:border-box;">
+  <div style="background:#FFFFFF; border:1px solid #E1DCCC; border-radius:14px; box-shadow:0 1px 3px rgba(34,38,43,0.06); padding:28px 24px 26px; width:100%; max-width:380px; box-sizing:border-box; text-align:center;">
+    <div style="font-family:'Georgia','Iowan Old Style',serif; font-size:20px; font-weight:700; letter-spacing:0.02em;">LifeOS<sup style="font-size:10px;">™</sup></div>
+    <div style="margin-top:4px; font-size:10px; letter-spacing:0.08em; text-transform:uppercase; color:#96742B; font-weight:600;">5 Span Module · Wealth Span</div>
+    <h1 style="font-family:'Georgia','Iowan Old Style',serif; font-size:17px; font-weight:400; margin:14px 0 4px; color:#22262B;">Wealth Span Calculator</h1>
+    <p style="font-size:12.5px; color:#767C82; line-height:1.5; margin:0 0 20px;">This copy is password-protected.<br />Enter the access password to continue.</p>
+    <form id="gate-form" autocomplete="off" style="display:flex; flex-direction:column; gap:10px;">
+      <input type="password" id="gate-password" placeholder="Password" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"
+        style="width:100%; box-sizing:border-box; background:#F4F1EA; border:1px solid #E1DCCC; border-radius:8px; color:#22262B; padding:11px 12px; font-size:15px; text-align:center; letter-spacing:0.05em;" />
+      <div id="gate-error" style="display:none; font-size:11.5px; color:#B14A33; font-weight:600; margin-top:-2px;">Incorrect password. Please try again.</div>
+      <button type="submit" style="background:#96742B; color:#FFFFFF; border:none; border-radius:8px; padding:11px 12px; font-size:13px; font-weight:600; letter-spacing:0.03em; cursor:pointer; font-family:inherit;">Enter</button>
+    </form>
+    <div style="margin-top:22px; padding-top:14px; border-top:1px solid #E1DCCC; font-size:9.5px; letter-spacing:0.06em; color:#767C82; line-height:1.5;">
+      Designed and Developed by Peter Ho<br />
+      All Rights Reserved &#174;
+    </div>
+  </div>
+</div>
+
+<div id="app-root" style="display:none;">
 <div id="root">
   <div id="static-loading" style="max-width:420px;margin:60px auto;padding:20px;font-family:'Helvetica Neue',Arial,sans-serif;font-size:13px;line-height:1.6;color:#767C82;text-align:center;">
     Loading the Wealth Span Calculator…<br /><br />
@@ -79,6 +100,7 @@
   </div>
 </div>
 <div id="error-box"></div>
+</div>
 
 <script type="text/plain" id="app-source">
 
@@ -332,9 +354,50 @@ function WealthSpanChart() {
   const [progress, setProgress] = useState(0);
   const [showGuide, setShowGuide] = useState(false);
   const [showSnapshot, setShowSnapshot] = useState(false);
-  const [showIterations, setShowIterations] = useState(false);
-  const [savedIterations, setSavedIterations] = useState([]);
-  const MAX_ITERATIONS = 5;
+  const [showSnapshots, setShowSnapshots] = useState(false);
+  const [savedSnapshots, setSavedSnapshots] = useState([]);
+  const MAX_SNAPSHOTS = 5;
+  const restoreRef = useRef({ el: null, selStart: 0, selEnd: 0, scrollY: 0 });
+
+  // Opens the Wealth Span Snapshot, first remembering exactly where the
+  // person was -- which input (if any) was focused, the cursor/selection
+  // position inside it, and the page scroll position -- so closing the
+  // snapshot can put them right back where they were typing.
+  function openSnapshot() {
+    const active = document.activeElement;
+    restoreRef.current.scrollY = window.scrollY;
+    if (active && active.tagName === "INPUT") {
+      restoreRef.current.el = active;
+      try {
+        restoreRef.current.selStart = active.selectionStart;
+        restoreRef.current.selEnd = active.selectionEnd;
+      } catch (e) {
+        restoreRef.current.selStart = null;
+        restoreRef.current.selEnd = null;
+      }
+    } else {
+      restoreRef.current.el = null;
+    }
+    setShowSnapshot(true);
+  }
+
+  function closeSnapshot() {
+    setShowSnapshot(false);
+    const { el, selStart, selEnd, scrollY } = restoreRef.current;
+    requestAnimationFrame(() => {
+      window.scrollTo(0, scrollY);
+      if (el && document.body.contains(el)) {
+        el.focus();
+        if (selStart !== null && selEnd !== null) {
+          try {
+            el.setSelectionRange(selStart, selEnd);
+          } catch (e) {
+            /* not all input types support selection ranges; ignore */
+          }
+        }
+      }
+    });
+  }
 
   useEffect(() => {
     if (retireAge <= userAge) setRetireAge(Math.min(userAge + 5, CHART_MAX_AGE - 2));
@@ -373,12 +436,12 @@ function WealthSpanChart() {
   const wealthAtRetirement = peakPoint.wealth;
   const wealthAt100 = data[data.length - 1].wealth;
 
-  function saveIteration() {
-    if (savedIterations.length >= MAX_ITERATIONS) {
-      window.alert(`You can keep up to ${MAX_ITERATIONS} iterations. Remove one from "Saved Iterations" first, then try again.`);
+  function saveSnapshot() {
+    if (savedSnapshots.length >= MAX_SNAPSHOTS) {
+      window.alert(`You can keep up to ${MAX_SNAPSHOTS} snapshots. Remove one from "Saved Snapshots" first, then try again.`);
       return false;
     }
-    setSavedIterations((prev) => [
+    setSavedSnapshots((prev) => [
       ...prev,
       {
         id: Date.now(),
@@ -400,8 +463,8 @@ function WealthSpanChart() {
     return true;
   }
 
-  function removeIteration(id) {
-    setSavedIterations((prev) => prev.filter((it) => it.id !== id));
+  function removeSnapshot(id) {
+    setSavedSnapshots((prev) => prev.filter((it) => it.id !== id));
   }
 
   useEffect(() => {
@@ -589,7 +652,7 @@ function WealthSpanChart() {
         </button>
 
         <button
-          onClick={() => setShowSnapshot(true)}
+          onClick={openSnapshot}
           style={{
             background: PAPER,
             color: INK,
@@ -610,7 +673,7 @@ function WealthSpanChart() {
         </button>
 
         <button
-          onClick={() => setShowIterations(true)}
+          onClick={() => setShowSnapshots(true)}
           style={{
             background: PAPER,
             color: INK,
@@ -627,7 +690,7 @@ function WealthSpanChart() {
             gap: 6,
           }}
         >
-          <span style={{ fontSize: 12 }}>☰</span> Saved Iterations ({savedIterations.length}/{MAX_ITERATIONS})
+          <span style={{ fontSize: 12 }}>☰</span> Saved Snapshots ({savedSnapshots.length}/{MAX_SNAPSHOTS})
         </button>
       </div>
 
@@ -643,10 +706,22 @@ function WealthSpanChart() {
           boxShadow: "0 6px 8px -8px rgba(34,38,43,0.25)",
         }}
       >
+        <div
+          style={{
+            fontSize: 13,
+            fontWeight: 700,
+            color: wealthAt100 < 0 ? RUST : BRASS,
+            fontFamily: "'Helvetica Neue', Arial, sans-serif",
+            marginBottom: 8,
+          }}
+        >
+          Wealth Leftover @ Age 100: {formatMoney(wealthAt100)}
+        </div>
+
         <div style={{ display: "flex", gap: 14, marginBottom: 6, fontFamily: "'Helvetica Neue', Arial, sans-serif" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
             <span style={{ width: 10, height: 10, borderRadius: 2, background: BRASS, opacity: 0.7, display: "inline-block" }} />
-            <span style={{ fontSize: 10, color: INK_DIM }}>Accumulated Investment Amount</span>
+            <span style={{ fontSize: 10, color: INK_DIM }}>Accumulated Wealth</span>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
             <span style={{ width: 10, height: 10, borderRadius: 2, background: RUST, opacity: 0.7, display: "inline-block" }} />
@@ -666,16 +741,16 @@ function WealthSpanChart() {
       </div>
 
       <div style={{ marginTop: 8, display: "grid", gridTemplateColumns: "1fr", gap: "9px", fontFamily: "'Helvetica Neue', Arial, sans-serif" }}>
-        <AgeField label="Your current age" value={userAge} min={18} max={80} onChange={setUserAge} />
-        <NumberField label="Current annual income" value={currentIncome} onChange={setCurrentIncome} />
-        <PercentField label="Estimated annual income growth" value={incomeGrowth} onChange={setIncomeGrowth} />
-        <NumberField label="Current annual expenses" value={currentExpenses} onChange={setCurrentExpenses} />
-        <PercentField label="Estimated annual expenses inflation" value={expenseInflation} onChange={setExpenseInflation} />
-        <AgeField label="Desired retirement age" value={retireAge} min={userAge + 1} max={95} onChange={setRetireAge} />
-        <NumberField label="Retirement annual expenses (at retirement age)" value={retireExpenses} onChange={setRetireExpenses} />
-        <PercentField label="Estimated retirement expenses inflation" value={retireExpenseInflation} onChange={setRetireExpenseInflation} />
-        <NumberField label="Current investment amount" value={currentInvestment} onChange={setCurrentInvestment} />
-        <PercentField label="Investment returns" value={investmentReturn} onChange={setInvestmentReturn} />
+        <AgeField label="Your current age" value={userAge} min={18} max={80} onChange={setUserAge} onOpenSnapshot={openSnapshot} />
+        <NumberField label="Current annual income" value={currentIncome} onChange={setCurrentIncome} onOpenSnapshot={openSnapshot} />
+        <PercentField label="Estimated annual income growth" value={incomeGrowth} onChange={setIncomeGrowth} onOpenSnapshot={openSnapshot} />
+        <NumberField label="Current annual expenses" value={currentExpenses} onChange={setCurrentExpenses} onOpenSnapshot={openSnapshot} />
+        <PercentField label="Estimated annual expenses inflation" value={expenseInflation} onChange={setExpenseInflation} onOpenSnapshot={openSnapshot} />
+        <AgeField label="Desired retirement age" value={retireAge} min={userAge + 1} max={95} onChange={setRetireAge} onOpenSnapshot={openSnapshot} />
+        <NumberField label="Retirement annual expenses (at retirement age)" value={retireExpenses} onChange={setRetireExpenses} onOpenSnapshot={openSnapshot} />
+        <PercentField label="Estimated retirement expenses inflation" value={retireExpenseInflation} onChange={setRetireExpenseInflation} onOpenSnapshot={openSnapshot} />
+        <NumberField label="Current investment amount" value={currentInvestment} onChange={setCurrentInvestment} onOpenSnapshot={openSnapshot} />
+        <PercentField label="Investment returns" value={investmentReturn} onChange={setInvestmentReturn} onOpenSnapshot={openSnapshot} />
       </div>
 
       <div style={{ marginTop: 10, fontSize: 11, color: INK_DIM, lineHeight: 1.45, fontFamily: "'Helvetica Neue', Arial, sans-serif" }}>
@@ -712,7 +787,7 @@ function WealthSpanChart() {
     {showGuide && <GuideModal onClose={() => setShowGuide(false)} />}
     {showSnapshot && (
       <SnapshotModal
-        onClose={() => setShowSnapshot(false)}
+        onClose={closeSnapshot}
         data={data}
         peakPoint={peakPoint}
         crossPoint={crossPoint}
@@ -727,17 +802,21 @@ function WealthSpanChart() {
         retireExpenseInflation={retireExpenseInflation}
         currentInvestment={currentInvestment}
         investmentReturn={investmentReturn}
-        onKeepData={saveIteration}
-        savedCount={savedIterations.length}
-        maxIterations={MAX_ITERATIONS}
+        onKeepData={saveSnapshot}
+        savedCount={savedSnapshots.length}
+        maxSnapshots={MAX_SNAPSHOTS}
+        onViewSaved={() => {
+          setShowSnapshot(false);
+          setShowSnapshots(true);
+        }}
       />
     )}
-    {showIterations && (
-      <IterationsModal
-        onClose={() => setShowIterations(false)}
-        iterations={savedIterations}
-        onRemove={removeIteration}
-        maxIterations={MAX_ITERATIONS}
+    {showSnapshots && (
+      <SnapshotsModal
+        onClose={() => setShowSnapshots(false)}
+        snapshotsList={savedSnapshots}
+        onRemove={removeSnapshot}
+        maxSnapshots={MAX_SNAPSHOTS}
       />
     )}
     </>
@@ -762,7 +841,8 @@ function SnapshotModal({
   investmentReturn,
   onKeepData,
   savedCount,
-  maxIterations,
+  maxSnapshots,
+  onViewSaved,
 }) {
   const sans = "'Helvetica Neue', Arial, sans-serif";
   const serif = "'Georgia', 'Iowan Old Style', serif";
@@ -770,6 +850,7 @@ function SnapshotModal({
   const [downloading, setDownloading] = useState(false);
   const [keptMessage, setKeptMessage] = useState("");
   const [fallbackUrl, setFallbackUrl] = useState(null);
+  const wealthAt100 = data[data.length - 1].wealth;
 
   const summaryTiles = [
     ["Current age", userAge],
@@ -823,7 +904,7 @@ function SnapshotModal({
   function handleKeepData() {
     const ok = onKeepData();
     if (ok) {
-      setKeptMessage(`Saved as Iteration ${savedCount + 1} of ${maxIterations}.`);
+      setKeptMessage(`Saved as Snapshot ${savedCount + 1} of ${maxSnapshots}.`);
       setTimeout(() => setKeptMessage(""), 3000);
     }
   }
@@ -887,10 +968,21 @@ function SnapshotModal({
         </div>
 
         <div ref={captureRef} style={{ background: CARD, padding: 2 }}>
+          <div
+            style={{
+              fontSize: 13,
+              fontWeight: 700,
+              color: wealthAt100 < 0 ? RUST : BRASS,
+              marginBottom: 8,
+            }}
+          >
+            Wealth Leftover @ Age 100: {formatMoney(wealthAt100)}
+          </div>
+
           <div style={{ display: "flex", gap: 14, marginBottom: 8 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
               <span style={{ width: 10, height: 10, borderRadius: 2, background: BRASS, opacity: 0.7, display: "inline-block" }} />
-              <span style={{ fontSize: 10, color: INK_DIM }}>Accumulated Investment Amount</span>
+              <span style={{ fontSize: 10, color: INK_DIM }}>Accumulated Wealth</span>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
               <span style={{ width: 10, height: 10, borderRadius: 2, background: RUST, opacity: 0.7, display: "inline-block" }} />
@@ -975,7 +1067,29 @@ function SnapshotModal({
               fontFamily: sans,
             }}
           >
-            Keep Data ({savedCount}/{maxIterations})
+            Keep Data ({savedCount}/{maxSnapshots})
+          </button>
+          <button
+            onClick={onViewSaved}
+            style={{
+              flex: "1 1 auto",
+              background: PAPER,
+              color: INK,
+              border: `1px solid ${LINE}`,
+              borderRadius: 8,
+              padding: "10px 12px",
+              fontSize: 12.5,
+              fontWeight: 600,
+              letterSpacing: "0.02em",
+              cursor: "pointer",
+              fontFamily: sans,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 6,
+            }}
+          >
+            <span style={{ fontSize: 12 }}>☰</span> Saved Snapshots ({savedCount}/{maxSnapshots})
           </button>
         </div>
         {fallbackUrl && (
@@ -995,7 +1109,7 @@ function SnapshotModal({
   );
 }
 
-function IterationsModal({ onClose, iterations, onRemove, maxIterations }) {
+function SnapshotsModal({ onClose, snapshotsList, onRemove, maxSnapshots }) {
   const sans = "'Helvetica Neue', Arial, sans-serif";
   const serif = "'Georgia', 'Iowan Old Style', serif";
   const tableCaptureRef = useRef(null);
@@ -1003,7 +1117,7 @@ function IterationsModal({ onClose, iterations, onRemove, maxIterations }) {
   const [pdfFallbackUrl, setPdfFallbackUrl] = useState(null);
 
   async function handleDownloadPdf() {
-    if (!tableCaptureRef.current || downloadingPdf || iterations.length === 0) return;
+    if (!tableCaptureRef.current || downloadingPdf || snapshotsList.length === 0) return;
     setDownloadingPdf(true);
     setPdfFallbackUrl(null);
     try {
@@ -1022,7 +1136,7 @@ function IterationsModal({ onClose, iterations, onRemove, maxIterations }) {
       // make a download seem to vanish.
       const link = document.createElement("a");
       link.href = url;
-      link.download = "wealth-span-saved-iterations.pdf";
+      link.download = "wealth-span-saved-snapshots.pdf";
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -1085,10 +1199,10 @@ function IterationsModal({ onClose, iterations, onRemove, maxIterations }) {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
           <div>
             <div style={{ fontFamily: serif, fontSize: 17, fontWeight: 700, color: INK, lineHeight: 1.2 }}>
-              Saved Iterations
+              Saved Snapshots
             </div>
             <div style={{ fontSize: 10, letterSpacing: "0.06em", textTransform: "uppercase", color: BRASS, marginTop: 3 }}>
-              {iterations.length} of {maxIterations} used
+              {snapshotsList.length} of {maxSnapshots} used
             </div>
           </div>
           <button
@@ -1112,14 +1226,14 @@ function IterationsModal({ onClose, iterations, onRemove, maxIterations }) {
         </div>
 
         <div ref={tableCaptureRef} style={{ background: CARD }}>
-        {iterations.length === 0 ? (
+        {snapshotsList.length === 0 ? (
           <div style={{ fontSize: 12.5, color: INK_DIM, padding: "20px 0", textAlign: "center" }}>
-            No iterations saved yet. Open "Wealth Span Snapshot" and use "Keep Data" to save up to {maxIterations} sets of
+            No snapshots saved yet. Open "Wealth Span Snapshot" and use "Keep Data" to save up to {maxSnapshots} sets of
             inputs for side-by-side comparison.
           </div>
         ) : (
           <div style={{ overflowX: "auto" }}>
-            <table style={{ borderCollapse: "collapse", width: "100%", minWidth: 120 + iterations.length * 130 }}>
+            <table style={{ borderCollapse: "collapse", width: "100%", minWidth: 120 + snapshotsList.length * 130 }}>
               <thead>
                 <tr>
                   <th
@@ -1139,7 +1253,7 @@ function IterationsModal({ onClose, iterations, onRemove, maxIterations }) {
                   >
                     Field
                   </th>
-                  {iterations.map((it, i) => (
+                  {snapshotsList.map((it, i) => (
                     <th
                       key={it.id}
                       style={{
@@ -1150,10 +1264,10 @@ function IterationsModal({ onClose, iterations, onRemove, maxIterations }) {
                       }}
                     >
                       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6 }}>
-                        <span style={{ fontSize: 12, fontWeight: 700, color: INK }}>Iteration {i + 1}</span>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: INK }}>Snapshot {i + 1}</span>
                         <button
                           onClick={() => onRemove(it.id)}
-                          aria-label={`Remove iteration ${i + 1}`}
+                          aria-label={`Remove snapshot ${i + 1}`}
                           style={{
                             background: "transparent",
                             border: `1px solid ${LINE}`,
@@ -1190,7 +1304,7 @@ function IterationsModal({ onClose, iterations, onRemove, maxIterations }) {
                     >
                       {row.label}
                     </td>
-                    {iterations.map((it) => (
+                    {snapshotsList.map((it) => (
                       <td key={it.id} style={{ fontSize: 12, color: INK, padding: "6px 10px", borderBottom: `1px solid ${LINE}` }}>
                         {row.get(it)}
                       </td>
@@ -1214,7 +1328,7 @@ function IterationsModal({ onClose, iterations, onRemove, maxIterations }) {
                     >
                       {row.label}
                     </td>
-                    {iterations.map((it) => {
+                    {snapshotsList.map((it) => {
                       const color = typeof row.accent === "function" ? row.accent(it) : row.accent;
                       return (
                         <td key={it.id} style={{ fontSize: 12.5, fontWeight: 700, color, padding: "8px 10px", borderBottom: `1px solid ${LINE}` }}>
@@ -1233,18 +1347,18 @@ function IterationsModal({ onClose, iterations, onRemove, maxIterations }) {
         <div style={{ display: "flex", gap: 8, marginTop: 14, flexWrap: "wrap" }}>
           <button
             onClick={handleDownloadPdf}
-            disabled={downloadingPdf || iterations.length === 0}
+            disabled={downloadingPdf || snapshotsList.length === 0}
             style={{
               flex: "1 1 auto",
-              background: iterations.length === 0 ? LINE : BRASS,
-              color: iterations.length === 0 ? INK_DIM : CARD,
+              background: snapshotsList.length === 0 ? LINE : BRASS,
+              color: snapshotsList.length === 0 ? INK_DIM : CARD,
               border: "none",
               borderRadius: 8,
               padding: "10px 12px",
               fontSize: 12.5,
               fontWeight: 600,
               letterSpacing: "0.02em",
-              cursor: downloadingPdf || iterations.length === 0 ? "default" : "pointer",
+              cursor: downloadingPdf || snapshotsList.length === 0 ? "default" : "pointer",
               opacity: downloadingPdf ? 0.7 : 1,
               fontFamily: sans,
             }}
@@ -1263,7 +1377,7 @@ function IterationsModal({ onClose, iterations, onRemove, maxIterations }) {
         )}
 
         <div style={{ marginTop: 14, fontSize: 10.5, color: INK_DIM, textAlign: "center" }}>
-          Iterations are kept for this browsing session only and are cleared if the page is reloaded.
+          Snapshots are kept for this browsing session only and are cleared if the page is reloaded.
         </div>
       </div>
     </div>
@@ -1429,21 +1543,32 @@ function GuideModal({ onClose }) {
           ))}
         </div>
         <p style={{ ...pStyle, marginTop: 8 }}>All percentage fields accept one decimal place (e.g. 3.5 for 3.5%).</p>
+        <p style={pStyle}>
+          Each field has a small <strong>⤢ button</strong> to its left that opens the Wealth Span Snapshot directly,
+          so you can see the chart and a full recap of your inputs without hunting for the scrollbar. Closing the
+          snapshot returns you to the exact field and cursor position you were typing in. The old up/down stepper
+          arrows have been removed from every field — they sat too close to the edge and were easy to bump by
+          accident, silently changing a value. Type the number directly instead.
+        </p>
 
         <div style={h2Style}>3. Reading the Chart</div>
+        <p style={pStyle}>
+          A headline above the chart shows <strong>Wealth Leftover @ Age 100</strong> at a glance — in rust if it's
+          negative, in brass if it holds.
+        </p>
         <ul style={{ ...pStyle, paddingLeft: 18 }}>
           <li style={liStyle}>
-            <strong>Amber line/area</strong> — your accumulated investment amount while it stays positive: current
+            <strong>Amber line/area ("Accumulated Wealth")</strong> — your balance while it stays positive: current
             investment, growing from investment returns plus each year's income-minus-expenses surplus.
           </li>
           <li style={liStyle}>
-            <strong>Rust line/area</strong> — the same balance after it turns negative: retirement withdrawals are
+            <strong>Rust line/area ("Shortfall")</strong> — the same balance after it turns negative: retirement withdrawals are
             outpacing what the balance and its returns can sustain.
           </li>
           <li style={liStyle}><strong>"Today" marker</strong> — your current age and starting balance.</li>
           <li style={liStyle}><strong>"Retire" marker</strong> — your balance at your chosen retirement age (the peak, in most scenarios).</li>
           <li style={liStyle}><strong>"Exhausted" marker</strong> — the age at which the balance crosses zero, if it does.</li>
-          <li style={liStyle}>The x-axis runs from your current age to age 100.</li>
+          <li style={liStyle}>The x-axis runs from your current age to age 100. The chart stays pinned to the top of the screen as you scroll through the inputs below it.</li>
         </ul>
 
         <div style={h2Style}>4. How the Calculation Works (in plain terms)</div>
@@ -1465,12 +1590,31 @@ function GuideModal({ onClose }) {
           Excel formulas — so you can inspect, audit, or extend the exact math behind the chart.
         </p>
 
-        <div style={h2Style}>5. Suggested Use</div>
+        <div style={h2Style}>5. Snapshots &amp; Saved Data</div>
+        <p style={pStyle}>
+          <strong>"Wealth Span Snapshot"</strong> opens a wide, landscape-proportioned view of the chart with your
+          current key inputs listed underneath. From there you can:
+        </p>
+        <ul style={{ ...pStyle, paddingLeft: 18 }}>
+          <li style={liStyle}><strong>Download Snapshot (.png)</strong> — saves that view as an image you can keep or share.</li>
+          <li style={liStyle}><strong>Keep Data</strong> — saves the current inputs plus Wealth @ Retirement, Exhaust Age, and Wealth
+            Leftover @ 100 as one entry, so you can compare it against other scenarios later. Up to 5 can be kept at once.</li>
+          <li style={liStyle}><strong>Saved Snapshots</strong> — jumps straight to the comparison table described below.</li>
+        </ul>
+        <p style={pStyle}>
+          <strong>"Saved Snapshots"</strong> opens a side-by-side comparison table of everything you've kept — every
+          input plus the three headline results, one column per saved scenario. Remove any column with its{" "}
+          <strong>×</strong> button to free up a slot, or download the whole table as a PDF. Saved snapshots live only
+          in this browser tab for the current session and are cleared if the page is reloaded.
+        </p>
+
+        <div style={h2Style}>6. Suggested Use</div>
         <ul style={{ ...pStyle, paddingLeft: 18, marginBottom: 0 }}>
           <li style={liStyle}>Revisit this periodically (e.g. annually, or after major life changes), not just once.</li>
           <li style={liStyle}>
             Use it to stress-test your assumptions: try a lower return, a later retirement, higher spending inflation
-            — and see how the picture shifts.
+            — and see how the picture shifts. Use "Keep Data" to save a few of these scenarios and compare them
+            side by side in "Saved Snapshots."
           </li>
           <li style={liStyle}>
             Use the shifts you observe as prompts for conversation with a qualified financial advisor, not as
@@ -1530,18 +1674,14 @@ const jumpButtonStyle = {
   fontFamily: "'Helvetica Neue', Arial, sans-serif",
 };
 
-function scrollToChart() {
-  window.scrollTo({ top: 0, behavior: "smooth" });
-}
-
 // Small button placed at the left edge of every input so the person can
-// jump back up to the chart (which updates live) without hunting for the
-// scrollbar -- most useful once the input fields have scrolled the chart
-// out of view above the fold.
-function JumpToChartButton() {
+// launch the Wealth Span Snapshot -- chart plus a recap of every input --
+// without hunting for the scrollbar or the header buttons. Closing the
+// snapshot restores focus and cursor position to wherever they were typing.
+function SnapshotShortcutButton({ onClick }) {
   return (
-    <button type="button" onClick={scrollToChart} aria-label="Scroll up to chart" title="Scroll up to chart" style={jumpButtonStyle}>
-      ↑
+    <button type="button" onClick={onClick} aria-label="Open Wealth Span Snapshot" title="Open Wealth Span Snapshot" style={jumpButtonStyle}>
+      ⤢
     </button>
   );
 }
@@ -1577,7 +1717,7 @@ function useBufferedNumber(value, onChange, toText, fromText) {
   return [text, handleChange];
 }
 
-function AgeField({ label, value, min, max, onChange }) {
+function AgeField({ label, value, min, max, onChange, onOpenSnapshot }) {
   const toText = (v) => String(v);
   const fromText = (t) => {
     const n = Number(t);
@@ -1591,14 +1731,14 @@ function AgeField({ label, value, min, max, onChange }) {
         <span style={{ color: BRASS, fontWeight: 700 }}>{value}</span>
       </label>
       <div style={{ display: "flex", gap: 6 }}>
-        <JumpToChartButton />
+        <SnapshotShortcutButton onClick={onOpenSnapshot} />
         <input type="number" min={min} max={max} step={1} value={text} onChange={(e) => handleChange(e.target.value)} style={{ ...fieldInputStyle, flex: 1 }} />
       </div>
     </div>
   );
 }
 
-function PercentField({ label, value, onChange }) {
+function PercentField({ label, value, onChange, onOpenSnapshot }) {
   const toText = (v) => String(Math.round(v * 1000) / 10); // one decimal place, e.g. 3.5
   const fromText = (t) => {
     const n = Number(t);
@@ -1612,7 +1752,7 @@ function PercentField({ label, value, onChange }) {
         <span style={{ color: BRASS, fontWeight: 700 }}>{(value * 100).toFixed(1)}%</span>
       </label>
       <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-        <JumpToChartButton />
+        <SnapshotShortcutButton onClick={onOpenSnapshot} />
         <input type="number" step={0.1} value={text} onChange={(e) => handleChange(e.target.value)} style={{ ...fieldInputStyle, flex: 1 }} />
         <span style={{ fontSize: 12, color: INK_DIM }}>%</span>
       </div>
@@ -1620,7 +1760,7 @@ function PercentField({ label, value, onChange }) {
   );
 }
 
-function NumberField({ label, value, onChange }) {
+function NumberField({ label, value, onChange, onOpenSnapshot }) {
   const toText = (v) => String(v);
   const fromText = (t) => {
     const n = Number(t);
@@ -1634,7 +1774,7 @@ function NumberField({ label, value, onChange }) {
         <span style={{ color: BRASS, fontWeight: 700 }}>{formatMoney(value)}</span>
       </label>
       <div style={{ display: "flex", gap: 6 }}>
-        <JumpToChartButton />
+        <SnapshotShortcutButton onClick={onOpenSnapshot} />
         <input type="number" value={text} onChange={(e) => handleChange(e.target.value)} style={{ ...fieldInputStyle, flex: 1 }} />
       </div>
     </div>
@@ -1643,7 +1783,7 @@ function NumberField({ label, value, onChange }) {
 </script>
 
 <script>
-(function () {
+function mountApp() {
   try {
     var src = document.getElementById('app-source').textContent;
     src = 'const { useState, useEffect, useMemo, useRef } = React;\n' + src;
@@ -1663,6 +1803,36 @@ function NumberField({ label, value, onChange }) {
     box.textContent = 'Something went wrong loading the chart:\n\n' + e.message;
     console.error(e);
   }
+}
+
+(function () {
+  // Client-side gate only -- this keeps casual openers out, but it is not
+  // real security: the page source (and this password) is visible to
+  // anyone who inspects the file, since everything runs entirely in the
+  // browser with no server involved.
+  var CORRECT_PASSWORD = "SG61!";
+  var mounted = false;
+  var gate = document.getElementById('gate');
+  var appRoot = document.getElementById('app-root');
+  var form = document.getElementById('gate-form');
+  var input = document.getElementById('gate-password');
+  var error = document.getElementById('gate-error');
+
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    if (input.value === CORRECT_PASSWORD) {
+      gate.style.display = 'none';
+      appRoot.style.display = 'block';
+      if (!mounted) {
+        mounted = true;
+        mountApp();
+      }
+    } else {
+      error.style.display = 'block';
+      input.value = '';
+      input.focus();
+    }
+  });
 })();
 </script>
 </body>

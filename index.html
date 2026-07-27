@@ -74,7 +74,7 @@
 <div id="gate" style="display:flex; align-items:center; justify-content:center; min-height:100vh; padding:max(16px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left)); font-family:'Helvetica Neue', Arial, sans-serif; color:#22262B; box-sizing:border-box;">
   <div style="background:#FFFFFF; border:1px solid #E1DCCC; border-radius:14px; box-shadow:0 1px 3px rgba(34,38,43,0.06); padding:28px 24px 26px; width:100%; max-width:380px; box-sizing:border-box; text-align:center;">
     <div style="font-family:'Georgia','Iowan Old Style',serif; font-size:20px; font-weight:700; letter-spacing:0.02em;">LifeOS<sup style="font-size:10px;">™</sup></div>
-    <div style="margin-top:4px; font-size:10px; letter-spacing:0.08em; text-transform:uppercase; color:#96742B; font-weight:600;">5 Span Module · Wealth Span</div>
+    <div style="margin-top:4px; font-size:10px; letter-spacing:0.08em; text-transform:uppercase; color:#96742B; font-weight:600;">5 Span Model · Wealth Span Module</div>
     <h1 style="font-family:'Georgia','Iowan Old Style',serif; font-size:17px; font-weight:400; margin:14px 0 4px; color:#22262B;">Wealth Span Calculator</h1>
     <p style="font-size:12.5px; color:#767C82; line-height:1.5; margin:0 0 20px;">This copy is password-protected.<br />Enter the access password to continue.</p>
     <form id="gate-form" autocomplete="off" style="display:flex; flex-direction:column; gap:10px;">
@@ -610,7 +610,7 @@ function WealthSpanChart() {
         <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: "0.02em", color: INK }}>
           LifeOS<span style={{ fontSize: 10, verticalAlign: "super" }}>™</span>
         </div>
-        <div style={{ ...labelStyle, color: BRASS, marginTop: 2, marginBottom: 6, fontSize: 10 }}>5 Span Module · Wealth Span</div>
+        <div style={{ ...labelStyle, color: BRASS, marginTop: 2, marginBottom: 6, fontSize: 10 }}>5 Span Model · Wealth Span Module</div>
         <div style={{ fontSize: 16, fontWeight: 400, lineHeight: 1.25 }}>
           Wealth Span Calculator <span style={{ fontSize: 11, color: INK_DIM, fontWeight: 400 }}>({APP_VERSION})</span>
         </div>
@@ -944,7 +944,7 @@ function SnapshotModal({
               Wealth Span — Snapshot
             </div>
             <div style={{ fontSize: 10, letterSpacing: "0.06em", textTransform: "uppercase", color: BRASS, marginTop: 3 }}>
-              LifeOS™ · 5 Span Module
+              LifeOS™ · 5 Span Model · Wealth Span Module
             </div>
           </div>
           <button
@@ -1438,7 +1438,7 @@ function GuideModal({ onClose }) {
               The Wealth Span — User Guide &amp; Important Notice
             </div>
             <div style={{ fontSize: 10.5, letterSpacing: "0.06em", textTransform: "uppercase", color: BRASS, marginTop: 4 }}>
-              LifeOS™ · 5 Span Module · Wealth Span Calculator
+              LifeOS™ · 5 Span Model · Wealth Span Module · Wealth Span Calculator
             </div>
           </div>
           <button
@@ -1513,9 +1513,10 @@ function GuideModal({ onClose }) {
 
         <div style={h2Style}>1. What This Tool Is For</div>
         <p style={pStyle}>
-          The Wealth Span Calculator is part of the <strong>5 Spans Model</strong> (Life Span, Health Span, Wealth
-          Span, Social Span, Mind Span) within LifeOS™. It exists to build <strong>awareness</strong> — to help you ask
-          better questions about your own trajectory:
+          The Wealth Span Calculator is the calculator within the <strong>Wealth Span Module</strong>, one of the five
+          modules of LifeOS™'s <strong>5 Span Model</strong> (Life Span, Health Span, Wealth Span, Social Span, Mind
+          Span). It exists to build <strong>awareness</strong> — to help you ask better questions about your own
+          trajectory:
         </p>
         <ul style={{ ...pStyle, paddingLeft: 18 }}>
           <li style={liStyle}>Am I on a path where my wealth might run out — and roughly when?</li>
